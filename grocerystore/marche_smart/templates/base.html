@@ -1,0 +1,76 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Marche Smart</title>
+  <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="navbar">
+      <a class="brand" href="#">
+        <div id="logo" class="logo" title="Marche Smart"> 
+          <!-- simple interactive SVG logo -->
+          <svg viewBox="0 0 64 64" width="40" height="40" aria-hidden="true">
+            <circle cx="32" cy="32" r="28" class="logo-bg"/>
+            <g class="cart">
+              <rect x="18" y="20" width="28" height="12" rx="2"/>
+              <path d="M22 32 L18 46 H46 L42 32"/>
+              <circle cx="26" cy="50" r="2"/>
+              <circle cx="42" cy="50" r="2"/>
+            </g>
+          </svg>
+        </div>
+        <span class="site-title">Marche Smart</span>
+      </a>
+
+      <form id="searchForm" class="search-form" role="search">
+        <input id="searchInput" name="q" type="search" placeholder="Search products...">
+        <button type="submit" aria-label="Search">Search</button>
+      </form>
+
+      <ul class="nav-links">
+        <li><a href="{% url 'marche_smart:home' %}">Home</a></li>
+        <li><a href="{% url 'marche_smart:shop' %}">Shop</a></li>
+        <li><a href="{% url 'marche_smart:about' %}">About</a></li>
+        <li class="dropdown">
+          <button id="loginBtn" class="dropbtn">Login ▾</button>
+          <div id="loginMenu" class="dropdown-content" aria-hidden="true">
+            <a href="{% url 'marche_smart:owner_login' %}">Owner Login</a>
+            <a href="{% url 'marche_smart:customer_login' %}">Customer Login</a>
+          </div>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    {% block content %}
+
+    <section id="home" class="hero">
+      <h1>Welcome to Marche Smart</h1>
+      <p>Smart supermarket shopping for SMEs — frontend prototype.</p>
+    </section>
+
+    <section id="shop" class="shop">
+      <h2>Shop</h2>
+      <p>Product grid / filters will go here.</p>
+    </section>
+
+    <section id="owner" class="owner-dashboard" hidden>
+      <h2>Owner Dashboard (placeholder)</h2>
+      <p>Sales, analytics and reports would appear here.</p>
+    </section>
+
+    <section id="customer" class="customer-dashboard" hidden>
+      <h2>Customer Dashboard (placeholder)</h2>
+      <p>Orders, purchase history and recommendations would appear here.</p>
+    </section>
+    {% endblock %}
+  </main>
+
+  <script src="{% static 'index.js' %}"></script>
+</body>
+</html>

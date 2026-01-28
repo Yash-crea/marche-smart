@@ -1,0 +1,443 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="shop-container">
+  <h1>Shop Products</h1>
+  
+  <div class="shop-layout">
+    <!-- Filters Sidebar -->
+    <aside class="filters-sidebar">
+      <h3>Filters</h3>
+      <form method="get" class="filters-form">
+        
+        <!-- Search Filter -->
+        <div class="filter-group">
+          <label for="searchInput">Search Products</label>
+          <input 
+            type="text" 
+            id="searchInput" 
+            name="search" 
+            placeholder="Search products..." 
+            value="{{ search_query }}"
+          >
+        </div>
+
+        <!-- Category Filter -->
+        <div class="filter-group">
+          <label for="categorySelect">Category</label>
+          <select id="categorySelect" name="category">
+            <option value="">All Categories</option>
+            {% for category in categories %}
+              <option value="{{ category.id }}" {% if selected_category|stringformat:"s" == category.id|stringformat:"s" %}selected{% endif %}>
+                {{ category.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Price Range Filter -->
+        <div class="filter-group">
+          <label for="minPrice">Price Range</label>
+          <div class="price-inputs">
+            <input 
+              type="number" 
+              id="minPrice" 
+              name="min_price" 
+              placeholder="Min" 
+              step="0.01"
+              value="{{ min_price }}"
+            >
+            <span class="separator">-</span>
+            <input 
+              type="number" 
+              id="maxPrice" 
+              name="max_price" 
+              placeholder="Max" 
+              step="0.01"
+              value="{{ max_price }}"
+            >
+          </div>
+          <small>Max available: ${{ max_price_available|floatformat:2 }}</small>
+        </div>
+
+        <!-- Apply Filters Button -->
+        <div class="filter-group">
+          <button type="submit" class="btn-apply-filters">Apply Filters</button>
+          <a href="{% url 'marche_smart:shop' %}" class="btn-clear-filters">Clear All</a>
+        </div>
+      </form>
+    </aside>
+
+    <!-- Products Grid -->
+    <main class="products-main">
+      <div class="products-header">
+        <p class="product-count">
+          {% if search_query or selected_category or min_price or max_price %}
+            Found <strong>{{ products.count }}</strong> product(s)
+          {% else %}
+            Showing <strong>{{ products.count }}</strong> product(s)
+          {% endif %}
+        </p>
+      </div>
+
+      {% if products %}
+        <div class="product-grid">
+          {% for product in products %}
+            <div class="product-card">
+              {% if product.image_url %}
+                <img src="{{ product.image_url }}" alt="{{ product.name }}" class="product-image">
+              {% else %}
+                <div class="product-image placeholder">
+                  <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="200" height="200" fill="#f0f0f0"/>
+                    <text x="100" y="100" text-anchor="middle" dy="0.3em" fill="#999">No Image</text>
+                  </svg>
+                </div>
+              {% endif %}
+              
+              <div class="product-info">
+                <h3 class="product-name">{{ product.name }}</h3>
+                
+                {% if product.category %}
+                  <p class="product-category">{{ product.category.name }}</p>
+                {% endif %}
+                
+                {% if product.description %}
+                  <p class="product-description">{{ product.description|truncatewords:15 }}</p>
+                {% endif %}
+                
+                <div class="product-footer">
+                  <span class="product-price">${{ product.price|floatformat:2 }}</span>
+                  {% if product.in_stock %}
+                    <span class="badge in-stock">In Stock</span>
+                  {% else %}
+                    <span class="badge out-of-stock">Out of Stock</span>
+                  {% endif %}
+                </div>
+                
+                <button class="btn-add-to-cart" {% if not product.in_stock %}disabled{% endif %}>
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="no-products">
+          <h2>No products found</h2>
+          <p>Try adjusting your filters or search terms.</p>
+          <a href="{% url 'marche_smart:shop' %}" class="btn-reset">View All Products</a>
+        </div>
+      {% endif %}
+    </main>
+  </div>
+</section>
+
+<style>
+  .shop-container {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+
+  .shop-container h1 {
+    margin-bottom: 2rem;
+    font-size: 2.5rem;
+    color: #333;
+  }
+
+  .shop-layout {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 2rem;
+  }
+
+  /* Filters Sidebar */
+  .filters-sidebar {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    height: fit-content;
+    position: sticky;
+    top: 2rem;
+  }
+
+  .filters-sidebar h3 {
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+    color: #333;
+  }
+
+  .filter-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .filter-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #555;
+    font-size: 0.95rem;
+  }
+
+  .filter-group input[type="text"],
+  .filter-group input[type="number"],
+  .filter-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+
+  .filter-group input[type="text"]:focus,
+  .filter-group input[type="number"]:focus,
+  .filter-group select:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+  }
+
+  .price-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .price-inputs input {
+    flex: 1;
+  }
+
+  .separator {
+    color: #999;
+    font-weight: bold;
+  }
+
+  .filter-group small {
+    display: block;
+    margin-top: 0.5rem;
+    color: #777;
+    font-size: 0.85rem;
+  }
+
+  .btn-apply-filters {
+    width: 100%;
+    padding: 0.75rem;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background 0.3s ease;
+  }
+
+  .btn-apply-filters:hover {
+    background: #45a049;
+  }
+
+  .btn-clear-filters {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+    background: #f0f0f0;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-decoration: none;
+    text-align: center;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn-clear-filters:hover {
+    background: #e0e0e0;
+  }
+
+  /* Products Section */
+  .products-main {
+    flex: 1;
+  }
+
+  .products-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .product-count {
+    color: #666;
+    font-size: 1rem;
+  }
+
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.5rem;
+  }
+
+  /* Product Card */
+  .product-card {
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .product-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    background: #f0f0f0;
+  }
+
+  .product-image.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+  }
+
+  .product-info {
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .product-name {
+    font-size: 1rem;
+    margin: 0 0 0.5rem 0;
+    color: #333;
+    line-height: 1.3;
+  }
+
+  .product-category {
+    font-size: 0.8rem;
+    color: #999;
+    margin: 0 0 0.5rem 0;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .product-description {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 0 0 0.75rem 0;
+    flex: 1;
+  }
+
+  .product-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+
+  .product-price {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #4CAF50;
+  }
+
+  .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .badge.in-stock {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  .badge.out-of-stock {
+    background: #ffebee;
+    color: #c62828;
+  }
+
+  .btn-add-to-cart {
+    width: 100%;
+    padding: 0.75rem;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+
+  .btn-add-to-cart:hover:not(:disabled) {
+    background: #45a049;
+  }
+
+  .btn-add-to-cart:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+
+  /* No Products */
+  .no-products {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem 2rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+  }
+
+  .no-products h2 {
+    color: #333;
+    margin-bottom: 0.5rem;
+  }
+
+  .no-products p {
+    color: #666;
+    margin-bottom: 1.5rem;
+  }
+
+  .btn-reset {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 600;
+    transition: background 0.3s ease;
+  }
+
+  .btn-reset:hover {
+    background: #45a049;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .shop-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .filters-sidebar {
+      position: relative;
+      top: 0;
+    }
+
+    .product-grid {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 1rem;
+    }
+  }
+</style>
+{% endblock %}
