@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="dashboard owner-dashboard">
+  <h2>Owner Dashboard</h2>
+  <div class="dashboard-cards">
+    <div class="card">
+      <h3>Total Sales</h3>
+      <p>${{ sales_total }}</p>
+    </div>
+    <div class="card">
+      <h3>Number of Purchases</h3>
+      <p>{{ orders_count }}</p>
+    </div>
+  </div>
+  <div class="dashboard-section">
+    <h3>Top Products</h3>
+    <ul>
+      {% for product in top_products %}
+        <li>{{ product.name }} - ${{ product.price }}</li>
+      {% empty %}
+        <li>No products found.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

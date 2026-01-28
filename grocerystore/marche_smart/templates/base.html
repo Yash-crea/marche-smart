@@ -35,6 +35,14 @@
         <li><a href="{% url 'marche_smart:home' %}">Home</a></li>
         <li><a href="{% url 'marche_smart:shop' %}">Shop</a></li>
         <li><a href="{% url 'marche_smart:about' %}">About</a></li>
+        <li>
+          <a href="{% url 'marche_smart:cart' %}" class="cart-link">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+            </svg>
+            <span class="cart-count">{{ request.session.cart_count|default:0 }}</span>
+          </a>
+        </li>
         <li class="dropdown">
           <button id="loginBtn" class="dropbtn">Login ▾</button>
           <div id="loginMenu" class="dropdown-content" aria-hidden="true">
@@ -70,6 +78,42 @@
     </section>
     {% endblock %}
   </main>
+
+  <style>
+    .cart-link {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #333;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .cart-link:hover {
+      color: #4CAF50;
+    }
+
+    .cart-link svg {
+      fill: currentColor;
+    }
+
+    .cart-count {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #4CAF50;
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+  </style>
 
   <script src="{% static 'index.js' %}"></script>
 </body>

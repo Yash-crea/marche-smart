@@ -1,5 +1,23 @@
+def customer_signup(request):
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '').strip()
+        if not name or not email or not password:
+            return render(request, 'customer_signup.html', {'error': 'All fields are required.'})
+        if Customer.objects.filter(email=email).exists():
+            return render(request, 'customer_signup.html', {'error': 'Email already registered.'})
+        customer = Customer(name=name, email=email)
+        customer.save()
+        # Optionally, log the user in after signup
+        request.session['customer_id'] = customer.id
+        request.session['customer_email'] = customer.email
+        request.session['customer_name'] = customer.name
+        return redirect('marche_smart:customer_dashboard')
+    return render(request, 'customer_signup.html')
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Product, Category, Owner, Customer
+from django.views.decorators.http import require_POST
 
 
 def customer_login(request):
@@ -15,7 +33,29 @@ def customer_login(request):
             request.session['customer_id'] = customer.id
             request.session['customer_email'] = customer.email
             request.session['customer_name'] = customer.name
-            return redirect('marche_smart:home')
+
+            # --- Cart merging logic (future-proof) ---
+            from .models import Cart, CartItem, Product
+            session_cart = request.session.get('cart', {})
+            cart, created = Cart.objects.get_or_create(customer=customer)
+            for product_id, item in session_cart.items():
+                try:
+                    product = Product.objects.get(id=int(product_id))
+                except Product.DoesNotExist:
+                    continue
+                cart_item, item_created = CartItem.objects.get_or_create(cart=cart, product=product)
+                if not item_created:
+                    cart_item.quantity += item.get('quantity', 1)
+                else:
+                    cart_item.quantity = item.get('quantity', 1)
+                cart_item.save()
+            # Clear session cart after merging
+            if session_cart:
+                request.session['cart'] = {}
+                request.session['cart_count'] = 0
+            # --- End cart merging logic ---
+
+            return redirect('marche_smart:customer_dashboard')
         except Customer.DoesNotExist:
             return render(request, 'customer_login.html', {'error': 'Invalid email or password.'})
     
@@ -35,7 +75,7 @@ def owner_login(request):
             request.session['owner_id'] = owner.id
             request.session['owner_email'] = owner.email
             request.session['owner_name'] = owner.name
-            return redirect('marche_smart:home')
+            return redirect('marche_smart:owner_dashboard')
         except Owner.DoesNotExist:
             return render(request, 'owner_login.html', {'error': 'Invalid email or password.'})
     
@@ -116,23 +156,139 @@ def owner_dashboard(request):
         'orders_count': 78,
         'top_products': Product.objects.order_by('-price')[:5],
     }
-    return render(request, 'base.html', context)
+    return render(request, 'owner_dashboard.html', context)
 
 
 def customer_dashboard(request):
     # placeholder customer view
-    sample_customer = Customer.objects.first()
+    customer_id = request.session.get('customer_id')
+    customer = None
+    if customer_id:
+        customer = Customer.objects.filter(id=customer_id).first()
     context = {
-        'customer': sample_customer,
+        'customer': customer,
         'current_purchase_total': 42.50,
         'orders': [],
     }
-    return render(request, 'base.html', context)
+    return render(request, 'customer_dashboard.html', context)
 
 
 def about(request):
     # render a dedicated About page
     return render(request, 'about.html')
-from django.shortcuts import render
 
-# Create your views here.
+
+def add_to_cart(request, product_id):
+    """Add product to cart"""
+    if request.method == 'POST':
+        quantity = int(request.POST.get('quantity', 1))
+        
+        # Initialize cart in session if it doesn't exist
+        if 'cart' not in request.session:
+            request.session['cart'] = {}
+        
+        cart = request.session['cart']
+        product_id_str = str(product_id)
+        
+        if product_id_str in cart:
+            cart[product_id_str]['quantity'] += quantity
+        else:
+            try:
+                product = Product.objects.get(id=product_id)
+                cart[product_id_str] = {
+                    'name': product.name,
+                    'price': str(product.price),
+                    'quantity': quantity,
+                    'image_url': product.image_url,
+                }
+            except Product.DoesNotExist:
+                return redirect('marche_smart:shop')
+        
+        # Update cart count in session
+        total_items = sum(item['quantity'] for item in cart.values())
+        request.session['cart_count'] = total_items
+        request.session.modified = True
+        
+        return redirect('marche_smart:cart')
+    
+    return redirect('marche_smart:shop')
+
+
+def cart(request):
+    """Display shopping cart"""
+    cart_items = request.session.get('cart', {})
+    
+    # Calculate totals
+    subtotal = 0
+    total_items = 0
+    
+    for item in cart_items.values():
+        item_total = float(item['price']) * item['quantity']
+        subtotal += item_total
+        total_items += item['quantity']
+    
+    tax = subtotal * 0.1  # 10% tax
+    total = subtotal + tax
+    
+    context = {
+        'cart_items': cart_items,
+        'subtotal': f"{subtotal:.2f}",
+        'tax': f"{tax:.2f}",
+        'total': f"{total:.2f}",
+        'item_count': total_items,
+    }
+    
+    return render(request, 'cart.html', context)
+
+def checkout(request):
+    # Only allow access if cart is not empty
+    cart = request.session.get('cart', {})
+    if not cart:
+        return redirect('cart')
+    return render(request, 'checkout.html')
+
+
+def checkout(request):
+    # Only allow access if cart is not empty
+    cart = request.session.get('cart', {})
+    if not cart:
+        return redirect('cart')
+    return render(request, 'checkout.html')
+
+@require_POST
+def remove_from_cart(request, product_id):
+    """Remove product from cart"""
+    if 'cart' in request.session:
+        product_id_str = str(product_id)
+        if product_id_str in request.session['cart']:
+            del request.session['cart'][product_id_str]
+            
+            # Update cart count
+            cart = request.session['cart']
+            total_items = sum(item['quantity'] for item in cart.values())
+            request.session['cart_count'] = total_items
+            request.session.modified = True
+    
+    return redirect('marche_smart:cart')
+
+
+def update_cart(request, product_id):
+    """Update product quantity in cart"""
+    if request.method == 'POST':
+        quantity = int(request.POST.get('quantity', 1))
+        
+        if quantity <= 0:
+            return remove_from_cart(request, product_id)
+        
+        if 'cart' in request.session:
+            product_id_str = str(product_id)
+            if product_id_str in request.session['cart']:
+                request.session['cart'][product_id_str]['quantity'] = quantity
+                
+                # Update cart count
+                cart = request.session['cart']
+                total_items = sum(item['quantity'] for item in cart.values())
+                request.session['cart_count'] = total_items
+                request.session.modified = True
+    
+    return redirect('marche_smart:cart')

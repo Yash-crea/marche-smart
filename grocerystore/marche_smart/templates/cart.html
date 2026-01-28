@@ -1,0 +1,417 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="cart-container">
+  <h1>Shopping Cart</h1>
+
+  {% if cart_items %}
+    <div class="cart-layout">
+      <!-- Cart Items -->
+      <div class="cart-items">
+        <table class="cart-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Price</th>
+              <th>Quantity</th>
+              <th>Total</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for product_id, item in cart_items.items %}
+              <tr class="cart-item">
+                <td class="product-info">
+                  {% if item.image_url %}
+                    <img src="{{ item.image_url }}" alt="{{ item.name }}" class="item-image">
+                  {% else %}
+                    <div class="item-image placeholder">No Image</div>
+                  {% endif %}
+                  <span class="product-name">{{ item.name }}</span>
+                </td>
+                <td class="price">${{ item.price }}</td>
+                <td class="quantity">
+                  <form method="post" action="{% url 'marche_smart:update_cart' product_id %}" class="quantity-form">
+                    {% csrf_token %}
+                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="99">
+                    <button type="submit" class="btn-update">Update</button>
+                  </form>
+                </td>
+                <td class="total">${{ item.price|floatformat:2|floatformat:2|add:"0" }}</td>
+                <td class="actions">
+                  <a href="{% url 'marche_smart:remove_from_cart' product_id %}" class="btn-remove">Remove</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Cart Summary -->
+      <aside class="cart-summary">
+        <div class="summary-card">
+          <h2>Order Summary</h2>
+          
+          <div class="summary-row">
+            <span>Subtotal:</span>
+            <span>${{ subtotal }}</span>
+          </div>
+          
+          <div class="summary-row">
+            <span>Tax (10%):</span>
+            <span>${{ tax }}</span>
+          </div>
+          
+          <div class="summary-row total">
+            <span>Total:</span>
+            <span>${{ total }}</span>
+          </div>
+          
+          <a href="{% url 'marche_smart:checkout' %}" class="btn-checkout">Proceed to Checkout</a>
+          <a href="{% url 'marche_smart:shop' %}" class="btn-continue-shopping">Continue Shopping</a>
+        </div>
+
+        <div class="summary-card info">
+          <h3>Order Info</h3>
+          <p><strong>Items:</strong> {{ item_count }}</p>
+          <p class="note">Free shipping on orders over $100!</p>
+        </div>
+      </aside>
+    </div>
+  {% else %}
+    <div class="empty-cart">
+      <svg viewBox="0 0 24 24" width="80" height="80">
+        <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" fill="#ccc"/>
+      </svg>
+      <h2>Your cart is empty</h2>
+      <p>Add some products to get started!</p>
+      <a href="{% url 'marche_smart:shop' %}" class="btn-primary">Go to Shop</a>
+    </div>
+  {% endif %}
+</section>
+
+<style>
+  .cart-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+
+  .cart-container h1 {
+    margin-bottom: 2rem;
+    font-size: 2.5rem;
+    color: #333;
+  }
+
+  .cart-layout {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 2rem;
+  }
+
+  /* Cart Items Table */
+  .cart-items {
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .cart-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .cart-table thead {
+    background: #f8f9fa;
+    border-bottom: 2px solid #eee;
+  }
+
+  .cart-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .cart-table tbody tr {
+    border-bottom: 1px solid #eee;
+  }
+
+  .cart-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .cart-table td {
+    padding: 1.5rem 1rem;
+    vertical-align: middle;
+  }
+
+  .product-info {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .item-image {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+
+  .item-image.placeholder {
+    width: 60px;
+    height: 60px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: #999;
+  }
+
+  .product-name {
+    font-weight: 500;
+    color: #333;
+  }
+
+  .price {
+    color: #4CAF50;
+    font-weight: 600;
+  }
+
+  .quantity {
+    min-width: 200px;
+  }
+
+  .quantity-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .quantity-form input {
+    width: 60px;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+
+  .btn-update {
+    padding: 0.5rem 0.75rem;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .btn-update:hover {
+    background: #0b7dda;
+  }
+
+  .total {
+    font-weight: 600;
+    color: #333;
+  }
+
+  .actions {
+    text-align: center;
+  }
+
+  .btn-remove {
+    padding: 0.5rem 1rem;
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-block;
+  }
+
+  .btn-remove:hover {
+    background: #d32f2f;
+  }
+
+  /* Cart Summary */
+  .cart-summary {
+    position: sticky;
+    top: 100px;
+    height: fit-content;
+  }
+
+  .summary-card {
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .summary-card h2 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.3rem;
+    color: #333;
+  }
+
+  .summary-card h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: #333;
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.95rem;
+  }
+
+  .summary-row:last-child {
+    border-bottom: none;
+  }
+
+  .summary-row.total {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #333;
+    padding-top: 1rem;
+    margin-top: 1rem;
+    border-top: 2px solid #eee;
+  }
+
+  .btn-checkout {
+    width: 100%;
+    padding: 1rem;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+    transition: background 0.3s ease;
+  }
+
+  .btn-checkout:hover {
+    background: #45a049;
+  }
+
+  .btn-continue-shopping {
+    display: block;
+    width: 100%;
+    padding: 1rem;
+    background: #f0f0f0;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .btn-continue-shopping:hover {
+    background: #e8e8e8;
+  }
+
+  .summary-card.info {
+    background: #f8f9fa;
+  }
+
+  .summary-card.info p {
+    margin: 0.5rem 0;
+    color: #666;
+    font-size: 0.9rem;
+  }
+
+  .note {
+    padding: 0.75rem;
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-left: 4px solid #4CAF50;
+    border-radius: 4px;
+    margin-top: 1rem !important;
+  }
+
+  /* Empty Cart */
+  .empty-cart {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 8px;
+  }
+
+  .empty-cart svg {
+    margin-bottom: 1rem;
+    opacity: 0.3;
+  }
+
+  .empty-cart h2 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+  }
+
+  .empty-cart p {
+    color: #666;
+    margin: 0 0 1.5rem 0;
+  }
+
+  .btn-primary {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    background: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 600;
+    transition: background 0.3s ease;
+  }
+
+  .btn-primary:hover {
+    background: #45a049;
+  }
+
+  @media (max-width: 768px) {
+    .cart-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .cart-summary {
+      position: relative;
+      top: 0;
+    }
+
+    .cart-table {
+      font-size: 0.9rem;
+    }
+
+    .cart-table th,
+    .cart-table td {
+      padding: 0.75rem 0.5rem;
+    }
+
+    .product-info {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .quantity-form {
+      flex-direction: column;
+    }
+  }
+</style>
+{% endblock %}
